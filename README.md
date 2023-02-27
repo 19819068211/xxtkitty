@@ -1,6 +1,6 @@
 <div align="center">
-    <h1>[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)超星学习通答题姬（已打包exe）</h1>
-    <h2>[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)</h2>
+    <h1>超星学习通答题姬（已打包exe）</h1>
+    <h2>SocialSisterYi/CxKitty</h2>
     <img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
     <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
@@ -10,7 +10,7 @@
 </div>
 
 
-本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”
+本项目旨在研究学习爬虫技术和网络接口编程技术，同时致力于以开源方式抵制并消灭各种付费“刷课平台”和“黑产”,作者[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)
 
 <span style="color: red"><b>Ps: 本项目不提供任何题库资源，有相关测试需求者请按照文档自行解决。本项目仅供学习参考使用，请在下载部署后24小时内删除，由于使用本项目不当所造成的挂科或不良学习记录作者一概不负责。</b></span>
 
