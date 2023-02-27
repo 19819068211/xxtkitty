@@ -1,6 +1,6 @@
 <div align="center">
-    <h1>超星学习通答题姬（已打包exe）</h1>
-    <h2>CxKitty</h2>
+    <h1>[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)超星学习通答题姬（已打包exe）</h1>
+    <h2>[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)</h2>
     <img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
     <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/SocialSisterYi/CxKitty">
