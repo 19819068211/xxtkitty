@@ -18,6 +18,8 @@
 
 打包版exe网盘链接[cxkitty](https://wwzs.lanzouy.com/iZAaS0on9uli)
 
+来源自[SocialSisterYi/CxKitty](https://github.com/SocialSisterYi/CxKitty)
+
 ## ✨Features
 
 ### Supports
