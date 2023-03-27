@@ -160,13 +160,22 @@ def select_class(tui_ctx: Console, classes: Classes) -> Iterator:
             str(cla.courseid),
             "[red]已结课" if cla.state else "[green]进行中",
         )
+    seq = []
+    
     while True:
         tui_ctx.print(tb)
-        inp = tui_ctx.input("请输入欲完成的课程 (序号/名称/id), 输入q退出：")
-        if inp == "q":
-            sys.exit()
+        inp = tui_ctx.input("请输入欲完成的课程 (序号/名称/id), 输入a选择全部课程，输入e结束选择：")
+        if inp == "e":
+            break
+        elif inp == "a":
+            for index, cla in enumerate(classes.classes):
+                selected_classes = ClassSeqIter(str(index), classes)
+                seq.extend(selected_classes)
+            break
         else:
-            seq = ClassSeqIter(inp, classes)
-            if len(seq) == 0:
+            selected_classes = ClassSeqIter(inp, classes)
+            if len(selected_classes) == 0:
                 continue
-            return seq
+            seq.extend(selected_classes)
+    print(seq)
+    return seq
