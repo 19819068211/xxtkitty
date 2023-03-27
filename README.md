@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>超星学习通答题姬</h1>
+    <h1>超星学习通答题姬(可批量选课，打包exe)</h1>
     <h2>CxKitty</h2>
     <img alt="Github Stars" src="https://img.shields.io/github/stars/SocialSisterYi/CxKitty">
     <img alt="Github Forks" src="https://img.shields.io/github/forks/SocialSisterYi/CxKitty">
