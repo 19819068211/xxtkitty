@@ -1,6 +1,6 @@
 import json
 from typing import Union
-
+from os import system
 import requests
 from bs4 import BeautifulSoup
 from rich.layout import Layout
