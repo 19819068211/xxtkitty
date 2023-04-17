@@ -364,7 +364,7 @@ class ChapterExam:
                 self.logger.info(f"试题保存成功 " f"[{self.title}(J.{self.jobid}/W.{self.workid})]")
                 msg.update(Panel(j, title="保存成功 TAT！", border_style="green"))
             else:
-                self.logger.warning(f"保存提交失败 " f"[{self.title}(J.{self.jobid}/W.{self.workid})]")
+                self.logger.warning(f"试题保存失败 " f"[{self.title}(J.{self.jobid}/W.{self.workid})]")
                 msg.update(Panel(j, title="保存失败！", border_style="red"))
         time.sleep(5.0)
 
@@ -459,7 +459,7 @@ class ChapterExam:
         )
         resp.raise_for_status()
         json_content = resp.json()
-        self.logger.debug(f"试题提交 resp: {json_content}")
+        self.logger.debug(f"试题保存 resp: {json_content}")
         return json_content
 
 
