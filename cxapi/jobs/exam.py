@@ -101,16 +101,16 @@ class ChapterExam:
     need_jobid: bool
 
     def __init__(
-            self,
-            session: requests.Session,
-            acc: AccountInfo,
-            card_index: int,
-            courseid: int,
-            workid: str,
-            jobid: str,
-            knowledgeid: int,
-            clazzid: int,
-            cpi: int,
+        self,
+        session: requests.Session,
+        acc: AccountInfo,
+        card_index: int,
+        courseid: int,
+        workid: str,
+        jobid: str,
+        knowledgeid: int,
+        clazzid: int,
+        cpi: int,
     ) -> None:
         self.session = session
         self.acc = acc
@@ -142,8 +142,8 @@ class ChapterExam:
         html = BeautifulSoup(resp.text, "lxml")
         try:
             if r := re.search(
-                    r"window\.AttachmentSetting *= *(.+?);",
-                    html.head.find("script", type="text/javascript").text,
+                r"window\.AttachmentSetting *= *(.+?);",
+                html.head.find("script", type="text/javascript").text,
             ):
                 attachment = json.loads(r.group(1))
             else:
@@ -346,13 +346,13 @@ class ChapterExam:
                 + "--------------------\n"
                 + "\n".join(
                     (
-                            f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} "
-                            + (
-                                f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}"
-                                if q.q_type in (QuestionType.单选题, QuestionType.多选题)
-                                else ""
-                            )
-                            + f"\n\ta: {a}"
+                        f"{i}.\tq({q.q_type.name}/{q.q_type.value}): {q.value} "
+                        + (
+                            f"\n\to: {' '.join(f'{k}={v}' for k, v in q.answers.items())}"
+                            if q.q_type in (QuestionType.单选题, QuestionType.多选题)
+                            else ""
+                        )
+                        + f"\n\ta: {a}"
                     )
                     for i, (q, a) in enumerate(mistake_questions, 1)
                 )
