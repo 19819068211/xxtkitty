@@ -4,7 +4,6 @@ import time
 import urllib.parse
 from hashlib import md5
 
-import requests
 from bs4 import BeautifulSoup
 from rich.json import JSON
 from rich.layout import Layout
@@ -13,8 +12,9 @@ from rich.progress import Progress
 
 from logger import Logger
 
-from .. import get_dc
+from .. import get_ts
 from ..schema import AccountInfo
+from ..session import SessionWraper
 
 # SSR页面-客户端章节任务卡片
 PAGE_MOBILE_CHAPTER_CARD = "https://mooc1-api.chaoxing.com/knowledge/cards"
@@ -26,10 +26,11 @@ API_CHAPTER_CARD_RESOURCE = "https://mooc1-api.chaoxing.com/ananas/status"
 API_VIDEO_PLAYREPORT = "https://mooc1-api.chaoxing.com/multimedia/log/a"
 
 
-class ChapterVideo:
-    "章节视频"
+class PointVideoDto:
+    """任务点视频接口
+    """
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     # 基本参数
     clazzid: int
@@ -41,33 +42,32 @@ class ChapterVideo:
     objectid: str
     fid: int
     dtoken: str
-    duration: int
+    duration: int   # 视频时长
     jobid: str
     otherInfo: str
-    title: str
+    title: str      # 视频标题
     rt: float
 
     def __init__(
         self,
-        session: requests.Session,
+        session: SessionWraper,
         acc: AccountInfo,
-        clazzid: int,
-        courseid: int,
-        knowledgeid: int,
+        clazz_id: int,
+        course_id: int,
+        knowledge_id: int,
         card_index: int,
-        objectid: str,
+        object_id: str,
         cpi: int,
     ) -> None:
+        self.logger = Logger("PointVideo")
         self.session = session
         self.acc = acc
-        self.clazzid = clazzid
-        self.courseid = courseid
-        self.knowledgeid = knowledgeid
+        self.clazzid = clazz_id
+        self.courseid = course_id
+        self.knowledgeid = knowledge_id
         self.card_index = card_index
-        self.objectid = objectid
+        self.objectid = object_id
         self.cpi = cpi
-        self.logger = Logger("PointVideo")
-        self.logger.set_loginfo(self.acc.phone)
 
     def pre_fetch(self) -> bool:
         "预拉取视频  返回是否需要完成"
@@ -120,7 +120,7 @@ class ChapterVideo:
         "拉取视频"
         resp = self.session.get(
             f"{API_CHAPTER_CARD_RESOURCE}/{self.objectid}",
-            params={"k": self.fid, "flag": "normal", "_dc": get_dc()},
+            params={"k": self.fid, "flag": "normal", "_dc": get_ts()},
         )
         resp.raise_for_status()
         json_content = resp.json()
@@ -163,14 +163,13 @@ class ChapterVideo:
         )
         resp.raise_for_status()
         json_content = resp.json()
-        self.logger.info("播放上报成功")
         self.logger.debug(f"上报 resp: {json_content}")
         return json_content
 
-    def playing(self, tui_ctx: Layout, speed: float = 1.0, report_rate: int = 58) -> None:
+    def play(self, tui_ctx: Layout, speed: float = 1.0, report_rate: int = 58) -> None:
         "开始模拟播放视频"
-        s_counter = report_rate
-        playing_time = 0
+        s_counter = report_rate     # 上报计时器
+        playing_time = 0            # 当前播放时间
         progress = Progress()
         info = Layout()
         tui_ctx.split_column(
@@ -191,7 +190,7 @@ class ChapterVideo:
             f"[{self.title}/{self.duration}(O.{self.objectid}/T.{self.dtoken}/J.{self.jobid})]"
         )
         while True:
-            if s_counter >= report_rate:
+            if s_counter >= report_rate or playing_time >= self.duration:
                 s_counter = 0
                 report_result = self.__play_report(playing_time)
                 j = JSON.from_data(report_result, ensure_ascii=False)
@@ -214,4 +213,4 @@ class ChapterVideo:
             time.sleep(1.0)
 
 
-__all__ = ["ChapterVideo"]
+__all__ = ["PointVideoDto"]
