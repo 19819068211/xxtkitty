@@ -1,21 +1,23 @@
 import json
-from typing import Union
-from os import system
-import requests
+
 from bs4 import BeautifulSoup
-from rich.layout import Layout
-from rich.panel import Panel
-from wcwidth import wcswidth
+from rich.console import Console, ConsoleOptions, Group, RenderResult
+from rich.padding import Padding
+from rich.style import Style
+from rich.styled import Styled
+from rich.text import Text
 
 from logger import Logger
 
-from . import APIError, calc_infenc, get_dc
-from .jobs.document import ChapterDocument
-from .jobs.exam import ChapterExam
-from .jobs.video import ChapterVideo
+from . import calc_infenc, get_ts
+from .exception import APIError
+from .jobs.document import PointDocumentDto
+from .jobs.video import PointVideoDto
+from .jobs.work import PointWorkDto
 from .schema import AccountInfo, ChapterModel
+from .session import SessionWraper
 
-TaskPointType = Union[ChapterExam, ChapterVideo, ChapterDocument]
+TaskPointType = PointWorkDto | PointVideoDto | PointDocumentDto
 
 # 接口-课程章节任务点状态
 API_CHAPTER_POINT = "https://mooc1-api.chaoxing.com/job/myjobsnodesmap"
@@ -24,52 +26,42 @@ API_CHAPTER_POINT = "https://mooc1-api.chaoxing.com/job/myjobsnodesmap"
 API_CHAPTER_CARDS = "https://mooc1-api.chaoxing.com/gas/knowledge"
 
 
-class ClassChapters:
-    "课程章节"
+class ChapterContainer:
+    """课程章节容器
+    用于获取章节任务点
+    """
     logger: Logger
-    session: requests.Session
+    session: SessionWraper
     acc: AccountInfo
     chapters: list[ChapterModel]
     # 课程参数
-    courseid: int  # 课程 id
-    name: str  # 课程名
-    clazzid: int  # 班级 id
+    courseid: int   # 课程 id
+    name: str       # 课程名
+    clazzid: int    # 班级 id
     cpi: int
+    
+    tui_index: int  # TUI 列表指针索引值
 
     def __init__(
         self,
-        session: requests.Session,
+        session: SessionWraper,
         acc: AccountInfo,
         courseid: int,
         name: str,
         clazzid: int,
         cpi: int,
-        chapter_lst: list[dict],
+        chapters: list[ChapterModel],
     ) -> None:
+        self.logger = Logger("Chapters")
         self.session = session
         self.acc = acc
         self.courseid = courseid
         self.clazzid = clazzid
         self.name = name
         self.cpi = cpi
-        self.logger = Logger("Chapters")
-        self.logger.set_loginfo(self.acc.phone)
-
-        self.chapters = [
-            ChapterModel(
-                chapter_id=cha["id"],
-                jobs=cha["jobcount"],
-                index=cha["indexorder"],
-                name=cha["name"].strip(),
-                label=cha["label"],
-                layer=cha["layer"],
-                status=cha["status"],
-                point_total=0,
-                point_finish=0,
-            )
-            for cha in chapter_lst
-        ]
-        self.chapters.sort(key=lambda x: tuple(int(v) for v in x.label.split(".")))
+        self.chapters = chapters
+        
+        self.tui_index = 0
 
     def __len__(self) -> int:
         return len(self.chapters)
@@ -80,42 +72,49 @@ class ClassChapters:
     def is_finished(self, index: int) -> bool:
         "判断当前章节的任务点是否全部完成"
         return (self.chapters[index].point_total > 0) and (
-            self.chapters[index].point_total == self.chapters[index].point_finish
+            self.chapters[index].point_total == self.chapters[index].point_finished
         )
 
-    def render_lst2tui(self, tui_ctx: Layout, index: int, lst_length: int = 16) -> None:
-        "渲染章节列表到TUI"
-        lines = []
+    def set_tui_index(self, index: int):
+        "设置 TUI 指针位置"
+        self.tui_index = index
+    
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        "渲染章节列表到 TUI"
         total = len(self.chapters)
-        half_length = lst_length // 2
-        if index - half_length < 0:
+        half_length = options.height // 2
+        if self.tui_index - half_length < 0:
             _min = 0
-            _max = min(total, lst_length)
-        elif index + half_length > total:
-            _min = total - lst_length
+            _max = min(total, options.height)
+        elif self.tui_index + half_length > total:
+            _min = total - options.height
             _max = total
         else:
-            _min = index - half_length
-            _max = index + half_length
+            _min = self.tui_index - half_length
+            _max = self.tui_index + half_length
         for ptr in range(_min, _max):
             chapter = self.chapters[ptr]
             # 判断是否已完成章节任务
-            is_finished = self.is_finished(ptr)
-            lines.append(
-                ("[bold red]❱[/]" if ptr == index else " ")
-                + ("  " * (chapter.layer - 1))
-                + f"[bold green]{chapter.label}[/]:"
-                + "["
-                + ("bold " if ptr == index else "")
-                + ("green" if is_finished else "white")
-                + "]"
-                + (chapter.name[:22] + "..." if wcswidth(chapter.name) > 25 else chapter.name)
-                + "[/]"
-                + f"    ...任务点{chapter.point_finish}/{chapter.point_total}"
+            yield Group(
+                Text("❱", style=Style(color="red", bold=True), end="") if ptr == self.tui_index else Text("", end=""),
+                Padding(
+                    Styled(
+                        Group(
+                            Text(f"{chapter.label}: ", style=Style(color="green", bold=True), end=""),
+                            Text(
+                                f"({chapter.point_finished}/{chapter.point_total}) {chapter.name}",
+                                style=Style(
+                                    color="green" if self.is_finished(ptr) else ("white" if chapter.point_finished == 0 else "yellow")
+                                ),
+                                end="",
+                                overflow="ellipsis"
+                            )
+                        ),
+                        style=Style(bold=ptr == self.tui_index)
+                    ),
+                    pad=(0, 0, 0, chapter.layer * 2),
+                ),
             )
-        tui_ctx.update(Panel("\n".join(lines), title=f"《{self.name}》章节列表", border_style="blue"))
-          #在命令行控制台标题输出当前用户姓名、课程、章节名、当前章节进度
-        system(f"title 当前用户：{self.acc.name} * 当前课程：{self.name} * 当前章节：{self.chapters[index].name}   {chapter.point_finish}/{chapter.point_total}")
 
     def fetch_point_status(self) -> None:
         "拉取章节任务点状态"
@@ -125,7 +124,7 @@ class ClassChapters:
                 "view": "json",
                 "nodes": ",".join(str(c.chapter_id) for c in self.chapters),
                 "clazzid": self.clazzid,
-                "time": get_dc(),
+                "time": get_ts(),
                 "userid": self.acc.puid,
                 "cpi": self.cpi,
                 "courseid": self.courseid,
@@ -136,9 +135,15 @@ class ClassChapters:
         for c in self.chapters:
             point_data = json_content[str(c.chapter_id)]
             c.point_total = point_data["totalcount"]
-            c.point_finish = point_data["finishcount"]
+            c.point_finished = point_data["finishcount"]
         self.logger.info("任务点状态已更新")
 
+    def __getitem__(self, key: int) -> list[TaskPointType]:
+        return self.fetch_points_by_index(key)
+    
+    def __len__(self) -> int:
+        return len(self.chapters)
+    
     def fetch_points_by_index(self, index: int) -> list[TaskPointType]:
         "以课程序号拉取对应“章节”的任务节点卡片资源"
         params = {
@@ -147,7 +152,7 @@ class ClassChapters:
             "fields": "id,parentnodeid,indexorder,label,layer,name,begintime,createtime,lastmodifytime,status,jobUnfinishedCount,clickcount,openlock,card.fields(id,knowledgeid,title,knowledgeTitile,description,cardorder).contentcard(all)",
             "view": "json",
             "token": "4faa8662c59590c6f43ae9fe5b002b42",
-            "_time": get_dc(),
+            "_time": get_ts(),
         }
         resp = self.session.get(
             API_CHAPTER_CARDS, params={**params, "inf_enc": calc_infenc(params)}
@@ -189,14 +194,14 @@ class ClassChapters:
                     case "insertvideo":
                         # 视频任务点
                         point_objs.append(
-                            ChapterVideo(
+                            PointVideoDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                courseid=self.courseid,
-                                knowledgeid=self.chapters[index].chapter_id,
-                                objectid=json_data["objectid"],
-                                clazzid=self.clazzid,
+                                course_id=self.courseid,
+                                knowledge_id=self.chapters[index].chapter_id,
+                                object_id=json_data["objectid"],
+                                clazz_id=self.clazzid,
                                 cpi=self.cpi,
                             )
                         )
@@ -206,15 +211,16 @@ class ClassChapters:
                     case "work":
                         # 测验任务点
                         point_objs.append(
-                            ChapterExam(
+                            PointWorkDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                courseid=self.courseid,
-                                workid=json_data["workid"],
-                                jobid=json_data["_jobid"],
-                                knowledgeid=self.chapters[index].chapter_id,
-                                clazzid=self.clazzid,
+                                course_id=self.courseid,
+                                work_id=json_data["workid"],
+                                school_id=json_data.get("schoolid"),
+                                job_id=json_data["_jobid"],
+                                knowledge_id=self.chapters[index].chapter_id,
+                                clazz_id=self.clazzid,
                                 cpi=self.cpi,
                             )
                         )
@@ -224,15 +230,15 @@ class ClassChapters:
                     case "insertdoc":
                         # 文档查看任务点
                         point_objs.append(
-                            ChapterDocument(
+                            PointDocumentDto(
                                 session=self.session,
                                 acc=self.acc,
                                 card_index=card_index,
-                                courseid=self.courseid,
-                                knowledgeid=self.chapters[index].chapter_id,
-                                clazzid=self.clazzid,
+                                course_id=self.courseid,
+                                knowledge_id=self.chapters[index].chapter_id,
+                                clazz_id=self.clazzid,
                                 cpi=self.cpi,
-                                objectid=json_data["objectid"],
+                                object_id=json_data["objectid"],
                             )
                         )
                         self.logger.debug(
@@ -245,4 +251,4 @@ class ClassChapters:
         return point_objs
 
 
-__all__ = ["ClassChapters"]
+__all__ = ["ChapterContainer"]
