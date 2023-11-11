@@ -96,7 +96,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 time.sleep(1.0)
         # 手机号+密码登录
         else:
-            passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)", password=True, console=tui_ctx)
+            passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)",  console=tui_ctx)
             tui_ctx.print('')
             status, result = api.login_passwd(uname, passwd)
             if status:
@@ -162,7 +162,7 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                         continue
                 return
 
-def select_class(tui_ctx: Console, classes: ClassContainer) -> list[str]:
+def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
     "交互-选择课程"
     tb = Table("序号", "课程名", "老师名", "课程id", "课程状态", title="所学的课程", border_style="blue")
     for index, cla in enumerate(classes.classes):
@@ -173,25 +173,14 @@ def select_class(tui_ctx: Console, classes: ClassContainer) -> list[str]:
             str(cla.course_id),
             Styled(cla.state.name, style="red" if cla.state == ClassStatus.已结课 else "green")
         )
-
-    selected_classes = []
     while True:
         tui_ctx.print(tb)
-        command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 输入 [yellow]a[/] 选择所有科目, 输入 [yellow]e[/] 结束科目选择, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 序号前加[yellow]\"EXAM|\"[/]进入考试模式, 输入 [yellow]q[/] 退出", console=tui_ctx)
         tui_ctx.print("")
         if command == "q":
             sys.exit()
-        elif command == "e":
-            break
-        elif command == "a":
-            selected_classes = [str(i) for i in range(len(classes.classes))]
-            break
         else:
-            selected_classes.append(command)
-
-    return selected_classes
-
-
+            return command
 
 def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI) -> tuple[ExamDto, bool]:
     """交互-选择考试
