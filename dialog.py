@@ -96,7 +96,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 time.sleep(1.0)
         # 手机号+密码登录
         else:
-            passwd = Prompt.ask("[yellow]请输入密码 (内容隐藏)",  console=tui_ctx)
+            passwd = Prompt.ask("[yellow]请输入密码 (内容不隐藏)",  console=tui_ctx)
             tui_ctx.print('')
             status, result = api.login_passwd(uname, passwd)
             if status:

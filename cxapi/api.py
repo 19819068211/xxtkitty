@@ -1,4 +1,7 @@
 import base64
+from hashlib import md5
+from os import PathLike
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 from Crypto.Cipher import AES
@@ -7,11 +10,11 @@ from yarl import URL
 
 from logger import Logger, set_log_filename
 
-from . import get_ua
 from .classes import ClassContainer
 from .exception import APIError
 from .schema import AccountInfo, AccountSex
 from .session import SessionWraper
+from .utils import inf_enc_sign, get_ts, get_ua
 
 # 接口-web端登录
 API_LOGIN_WEB = "https://passport2.chaoxing.com/fanyalogin"
@@ -31,15 +34,18 @@ API_SSO_LOGIN = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
 # SSR页面-登录 用于提取二维码key
 PAGE_LOGIN = "https://passport2.chaoxing.com/login"
 
-# 二维码登录 url 
+# 接口-获取预上传人脸图片
+API_FACE_IMAGE = "https://passport2-api.chaoxing.com/api/getUserFaceid"
+
+# 二维码登录 url
 URL_QRLOGIN = "https://passport2.chaoxing.com/toauthlogin"
 
+
 class ChaoXingAPI:
-    """学习通根接口类
-    """
-    logger: Logger          # 日志记录器
+    """学习通根接口类"""
+
+    logger: Logger  # 日志记录器
     session: SessionWraper  # HTTP 会话封装
-    acc: AccountInfo        # 用户账号信息
     # 二维码登录用
     qr_uuid: str
     qr_enc: str
@@ -51,6 +57,14 @@ class ChaoXingAPI:
         """
         self.logger = Logger("RootAPI")
         self.session = SessionWraper()
+
+    @property
+    def acc(self) -> AccountInfo:
+        return self.session.acc
+
+    @acc.setter
+    def acc(self, value: AccountInfo) -> None:
+        self.session.acc = value
 
     def login_passwd(self, phone: str, passwd: str) -> tuple[bool, dict]:
         """以 web 方式使用手机号+密码账号
@@ -78,19 +92,18 @@ class ChaoXingAPI:
         )
         resp.raise_for_status()
         json_content = resp.json()
-        
+
         if json_content.get("status") != True:
             return False, json_content
         return True, json_content
 
     def qr_get(self) -> None:
-        """获取用于二维码登录的 key
-        """
+        """获取用于二维码登录的 key"""
         self.session.cookies.clear()
         resp = self.session.get(
             PAGE_LOGIN,
             headers={
-                "User-Agent": get_ua("web"),    # 这里不可以用移动端 UA 否则鉴权失败
+                "User-Agent": get_ua("web"),  # 这里不可以用移动端 UA 否则鉴权失败
             },
         )
         resp.raise_for_status()
@@ -107,17 +120,18 @@ class ChaoXingAPI:
         Returns:
             str: 登录二维码内容 url
         """
-        return str(URL(URL_QRLOGIN).with_query(
-            uuid=self.qr_uuid,
-            enc=self.qr_enc,
-            xxtrefer="",
-            clientid="",
-            mobiletip=""
-        ))
+        return str(
+            URL(URL_QRLOGIN).with_query(
+                uuid=self.qr_uuid,
+                enc=self.qr_enc,
+                xxtrefer="",
+                clientid="",
+                mobiletip="",
+            )
+        )
 
     def login_qr(self) -> dict:
-        """尝试使用二维码登录
-        """
+        """尝试使用二维码登录"""
         resp = self.session.post(
             API_QRLOGIN,
             data={
@@ -137,10 +151,10 @@ class ChaoXingAPI:
         resp = self.session.get(API_SSO_LOGIN)
         resp.raise_for_status()
         json_content = resp.json()
-        
+
         if json_content.get("result") == 0:
             return False
-        
+
         # 开始解析数据
         self.acc = AccountInfo(
             puid=json_content["msg"]["puid"],
@@ -162,13 +176,59 @@ class ChaoXingAPI:
         resp = self.session.get(API_CLASS_LST)
         resp.raise_for_status()
         json_content = resp.json()
-        
+
         if json_content.get("result") != 1:
             self.logger.error(f"课程列表拉取失败")
             raise APIError
-        
+
         self.logger.info(f"课程列表拉取成功 共 {len(json_content['channelList'])} 个")
-        return ClassContainer(session=self.session, acc=self.acc, classes_lst=json_content["channelList"])
+        return ClassContainer(
+            session=self.session,
+            acc=self.acc,
+            classes_lst=json_content["channelList"],
+        )
+
+    def fetch_face(self) -> str | None:
+        """获取预上传人脸图片
+        Returns:
+            str: 人脸图片url, 若未上传为 None
+        """
+        resp = self.session.get(
+            API_FACE_IMAGE,
+            params=inf_enc_sign(
+                {
+                    "enc": md5(f"{self.acc.puid}uWwjeEKsri".encode()).hexdigest(),
+                    "token": "4faa8662c59590c6f43ae9fe5b002b42",
+                    "_time": get_ts(),
+                }
+            ),
+        )
+        resp.raise_for_status()
+        json_content = resp.json()
+        if json_content.get("result") != 1:
+            message = json_content.get("msg")
+            self.logger.warning(f"预上传人脸获取失败 {message}")
+            return None
+        if url := json_content["data"]["http"]:
+            self.logger.info(f"预上传人脸获取成功 U.{url}")
+            return url
+        self.logger.info(f"用户未上传人脸")
+        return None
+
+    def save_face(self, face_url: str, path: str | PathLike) -> None:
+        """保存预上传人脸图片
+        Args:
+            face_url: 人脸图片 url
+            path: 保存路径
+        """
+        resp = self.session.get(face_url)
+        resp.raise_for_status()
+        path = Path(path)
+        if not path.is_dir():
+            path.mkdir(parents=True)
+        file_path = path / f"{self.acc.puid}.jpg"
+        open(file_path, "wb").write(resp.content)
+        self.logger.info(f'人脸保存成功 "{file_path}"')
 
 
 __all__ = ["ChaoXingAPI"]
