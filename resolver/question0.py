@@ -128,8 +128,6 @@ class SearchRespShowComp:
     def __init__(self, question: QuestionModel, results: list[SearcherResp]) -> None:
         self.question = question
         self.results = results
-        
-        
 
     def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
         """rich 渲染接口"""
@@ -211,70 +209,19 @@ class QuestionResolver:
 
     def fill(self, question: QuestionModel, search_results: list[SearcherResp]) -> bool:
         "查询并填充对应选项"
-        
         self.logger.debug(f"开始填充题目 {question}")
-        
         # 遍历多个搜索器返回以适配结果
         for result in search_results:
-            
             if result.code != 0 or result.answer is None:
-                
                 continue
-            
-            if isinstance(result.answer, list):
-             
-                result.answer = '#'.join(str(item) for item in result.answer)
-                
-                
-                #print(result.answer)
-                
-                
-                
-                
-                result_char=[]
-                
-                for char in result.answer:
-                    result_char.append(char)
-                    """
-                    这是适配lyk6题库的数字选项返回
-                    """
-                    
-##                    if char.isdigit():
-##                        
-##                        result_char.append(chr(65 + int(char)))
-##                        #result.answer=''.join(result_char)
-##                        
-##                    else:
-##                        
-##                        #result_answer = str(result_answer)
-##                        result_char.append(char)
-
-                
-                result.answer = ''.join(result_char)
-            else:
-                result.answer = str(result.answer)
-            
-            
-            
             search_answer = result.answer.strip()
-            
-           # print(f"现在search_answer的值是: {search_answer}")
-            
-
             match question.type:
                 case QuestionType.单选题:
-
-                    for k, v in question.options.items():  
-                        if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.95:  
+                    for k, v in question.options.items():
+                        if difflib.SequenceMatcher(a=v, b=search_answer).ratio() >= 0.95:
                             question.answer = k
-                            #print(f"现在question.answer的值是: {question.answer}")
                             self.logger.debug(f"单选题命中 {k}={v}")
                             return True
-                            
-##                        if any(c.isalpha() and c.isupper() and ord(c) >= ord('A') + 10 for c in search_answer):  # 假设 'A' 是从 0 转换而来，我们检查 'J' 及以上  
-##                            question.answer = search_answer.upper()  
-##                            return True  
-                            
                 case QuestionType.判断题:
                     if re.search(r"(错|否|错误|false|×)", search_answer):
                         question.answer = False
@@ -289,24 +236,14 @@ class QuestionResolver:
                     if len(part_answer_lst := search_answer.split("#")) <= 1:
                         part_answer_lst = search_answer.split(";")
                     for part_answer in part_answer_lst:
-                        
                         for k, v in question.options.items():
                             if v == part_answer:
-                                
                                 option_lst.append(k)
-
-                                
                                 self.logger.debug(f"多选题命中 {k}={v}")
-##                            if any(c.isalpha() and c.isupper() and ord(c) >= ord('A') + 10 for c in search_answer):  # 假设 'A' 是从 0 转换而来，我们检查 'J' 及以上  
-##      
-##                                question.answer = search_answer.upper().split("#")
-                    
-                    #print(f"现在option_lst的值是: {option_lst}")       
                     # 多选题选项必须排序，否则提交错误
                     option_lst.sort()
                     if len(option_lst):
                         question.answer = "".join(option_lst)
-                        #print(f"现在question.answer的值是: {question.answer}") 
                         self.logger.debug(f"多选题最终选项 {question.answer}")
                         return True
                 case QuestionType.填空题:

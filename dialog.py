@@ -96,7 +96,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
                 time.sleep(1.0)
         # 手机号+密码登录
         else:
-            passwd = Prompt.ask("[yellow]请输入密码 (内容不隐藏)",  console=tui_ctx)
+            passwd = Prompt.ask("[yellow]请输入密码 ", console=tui_ctx)
             tui_ctx.print('')
             status, result = api.login_passwd(uname, passwd)
             if status:
@@ -110,6 +110,7 @@ def login(tui_ctx: Console, api: ChaoXingAPI):
 
 def relogin(tui_ctx: Console, session: SessionModule, api: ChaoXingAPI):
     "重新登录账号"
+    api.session.ck_clear()
     phone = session.phone
     passwd = session.passwd
     if passwd is not None:

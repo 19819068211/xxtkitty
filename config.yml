@@ -23,7 +23,7 @@ face_image_path: "faces/"
 # 视频
 video:
   # 使能
-  enable: true
+  enable: false
   # 完成等待时间
   wait: 15
   # 倍速
@@ -56,43 +56,50 @@ exam:
   # 未匹配选项是否随机选择
   fallback_fuzzer: false
   # 提交前延迟时间
-  persubmit_delay: 10
+  persubmit_delay: 15
   # 是否需要交互式确认交卷 自动交卷: false 手动确认: true
   confirm_submit: true
 
 # --------------------
 
-# 搜索器选择 (可同时使用多个搜索器, 请取消注释以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
-# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher
+# 搜索器选择 (可同时使用多个搜索器, 以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
+# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher LemonSearcher
 searchers:
-  # 本地 JSON 数据库搜索器 (key为题, value为答案)
-  #- type: jsonFileSearcher
-  #  file_path: "questions.json"  # 数据库文件路径
 
-  # REST API 在线搜题
+
+
+
+
+
+  # Json API 在线搜题
+   #- type: JsonApiSearcher
+   #  url: "https://lyck6.cn/scriptService/api/autoFreeAnswer"  # API URL 请进行替换
+   #  q_field: "question"  # 题目参数名称
+     #o_field:  "options" # 选项参数名称 (可选)  填写为用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 不填为{"A":"xxx","B":"xxx","C":"xxx","D":"xxx"}
+  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
+  #     # eg: Authorization: 'xxx'
+   #  ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
+   #     Token: 'xxx'
+      # type: '1'
+    # a_field: "$.result.answers"  # 返回参数 使用 JSONPath 语法进行查询
+
+
+
   # Json API 在线搜题
    - type: JsonApiSearcher
      url: "https://api.muketool.com/cx/v2/query"  # API URL 请进行替换
      q_field: "question"  # 题目参数名称
-     o_field: options  # 选项参数名称 (可选)  填写为用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 不填为{"A":"xxx","B":"xxx","C":"xxx","D":"xxx"}
-     #headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
- #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
+  #   o_field: null  # 选项参数名称 (可选)  填写为用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 不填为{"A":"xxx","B":"xxx","C":"xxx","D":"xxx"}
+  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
+  #     # eg: Authorization: 'xxx'
+    # ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
+   #     Token: 'xxx'
      a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
 
-   - type: JsonApiSearcher
-     url: "https://lyck6.cn/scriptService/api/autoFreeAnswer"  # API URL 请进行替换
-     q_field: "question"  # 题目参数名称
-     #o_field: options  # 选项参数名称 (可选)  填写为用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 不填为{"A":"xxx","B":"xxx","C":"xxx","D":"xxx"}
-     #headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
- #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-     a_field: "$.result.answers[0][0]"  # 返回参数 使用 JSONPath 语法进行查询
 
 
 
+  # REST API 在线搜题
    - type: restApiSearcher
      url: "http://127.0.0.1:88/v1/cx"  # API URL 请进行替换
      method: "POST"  # 请求方式
@@ -100,28 +107,13 @@ searchers:
   #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
   #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
+    # ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
+       # Token: ''
      a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
 
 
-   - type: restApiSearcher
-     url: "https://api.bcaqfy.xin:8443/tiku/search?token=36QNVDkUs5uj"  # API URL 请进行替换
-     #	token
-     #36QNVDkUs5uj
-     #Z8H5SED89wRm
-     #vBNVSXmEPaQ!
-     #Ut!c=cmZvFr4
-     #9FzQxcLKHZ2q
-     method: "GET"  # 请求方式
-     q_field: "keyword"  # 题目文本参数
-  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
-  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-     a_field: "$.data.answer"  # 返回参数 使用 JSONPath 语法进行查询
 
+  # REST API 在线搜题
    - type: restApiSearcher
      url: "https://cx.icodef.com/wyn-nb?v=4"  # API URL 请进行替换
      method: "POST"  # 请求方式
@@ -129,56 +121,8 @@ searchers:
   #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
   #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
   #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
+   #  ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
+    #    Token: ''
      a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
 
-   - type: restApiSearcher
-     url: "https://tk.enncy.cn/query?token=eb38ddb004cf4730a0aa3eb74f862160&more=true&__show_details__=false"  # API URL 请进行替换
-     method: "GET"  # 请求方式
-     q_field: "title"  # 题目文本参数
-  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
-  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-     a_field: "$.data.answer"  # 返回参数 使用 JSONPath 语法进行查询
 
-
-
-  # - type: restApiSearcher
-  #   url: "http://10.50.9.10:8088/question/search"  # API URL 请进行替换
-  #   method: "POST"  # 请求方式
-  #   q_field: "question"  # 题目文本参数
-  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
-  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-  #   a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
-  
-
-  
-  # 本地 sqlite 数据库搜索器
-  # - type: sqliteSearcher
-  #   file_path: "questions.db"  # 数据库文件路径
-  #   table: "question"  # 表名
-  #   req_field: "question"  # 请求字段
-  #   rsp_field: "answer"  # 返回字段
-  
-  # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
-  # - type: enncySearcher
-  #   token: "xxx"  # Enncy 题库 Token
-  
-  # 网课小工具(Go题)题库搜索器，使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
-  # - type: cxSearcher
-  #   token: "xxx"  # 网课小工具(Go题)题库 Token
-  
-  # 题库海搜索源， 暂时可不用token 如若搜索失败 https://afdian.net/a/jiaoyu666 购买token
-   - type: TiKuHaiSearcher
-     token: ""
-  # 冷月题库, 免费限制4秒一次请求
-   #- type: LyCk6Searcher
-    # token: ""
-  # Muke题库
-   - type: MukeSearcher

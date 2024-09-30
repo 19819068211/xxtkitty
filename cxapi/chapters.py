@@ -1,5 +1,5 @@
 import json
-
+from os import system
 from bs4 import BeautifulSoup
 from rich.console import Console, ConsoleOptions, Group, RenderResult
 from rich.padding import Padding
@@ -8,7 +8,7 @@ from rich.styled import Styled
 from rich.text import Text
 
 from logger import Logger
-from os import system
+
 from .exception import APIError
 from .schema import AccountInfo, ChapterModel
 from .session import SessionWraper
@@ -102,6 +102,9 @@ class ChapterContainer:
             _max = self.tui_index + half_length
         for ptr in range(_min, _max):
             chapter = self.chapters[ptr]
+            #system(f"title 当前用户：{self.acc.name} * 当前课程：{self.name} * 当前章节：{self.chapters[self.tui_index].name}")
+            system(f"title 当前用户：{self.acc.name} * 当前课程：{self.name} * 当前章节：{self.chapters[self.tui_index].name}   {self.chapters[self.tui_index].point_finished}/{self.chapters[self.tui_index].point_total}")
+            
             # 判断是否已完成章节任务
             yield Group(
                 Text("❱", style=Style(color="red", bold=True), end="")
@@ -131,8 +134,6 @@ class ChapterContainer:
                     pad=(0, 0, 0, chapter.layer * 2),
                 ),
             )
-            system(f"title 当前用户：{self.acc.name} * 当前课程：{self.name} * 当前章节：{self.chapters[self.tui_index].name}")
-            
 
     def fetch_point_status(self) -> None:
         """拉取章节任务点状态"""

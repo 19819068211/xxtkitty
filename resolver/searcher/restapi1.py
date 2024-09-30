@@ -1,5 +1,5 @@
 from typing import Literal, Optional
-import json
+
 import jsonpath
 import requests
 from bs4 import BeautifulSoup
@@ -46,13 +46,12 @@ class RestApiSearcher(SearcherBase):
 
     def invoke(self, question: QuestionModel) -> SearcherResp:
         self.question_value = question.value
-        params = {"type": question.type.value, self.q_field: self.question_value, **self.ext_params}
+        params = {self.q_field: self.question_value, **self.ext_params}
         if self.o_field and question.options and isinstance(question.options, dict):
             params[self.o_field] = "#".join(question.options.values())
         try:
             if self.method == "GET":
                 resp = self.session.get(
-                    
                     self.url,
                     params=params,
                 )
@@ -107,33 +106,20 @@ class JsonApiSearcher(SearcherBase):
         }
         if question.options is not None:
             if self.o_field and question.options and isinstance(question.options, dict):
-                #payload[self.o_field] = "#".join(question.options.values())
-                #payload[self.o_field] = "#".join(question.options.values())
-                #payload["options"] = list(",".join(question.options.values()))
-                payload["options"] = list(question.options.values())
-                #print(payload)
+                payload[self.o_field] = "#".join(question.options.values())
             else:
-                #payload["options"] = question.options
-                #payload["options"] = list(",".join(question.options.values()))
-                payload["options"] = list(question.options.values())
-                #print(payload)
-
-        
-
-                
+                payload["options"] = question.options
         try:
             resp = self.session.post(
                 self.url,
                 json=payload,
             )
             resp.raise_for_status()
-            #print(resp.text)
             return self.parse(resp.json())
         except Exception as err:
             return SearcherResp(-500, err.__str__(), self, self.question, None)
 
     def parse(self, json_content: dict | list) -> SearcherResp:
-        
         if result := self.rsp_query.parse(json_content):
             return SearcherResp(0, "ok", self, self.question, result[0])
         return SearcherResp(-500, "未匹配答案字段", self, self.question, None)
